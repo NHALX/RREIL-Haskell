@@ -1,6 +1,6 @@
 #include <HsFFI.h>
 #ifdef __GLASGOW_HASKELL__
-#include <Types_stub.h>
+#include <RREIL/Internal/Types_stub.h>
 #endif
 #include <stdio.h>
 
@@ -11,12 +11,7 @@
 #include <string.h>
 
 #include <gdsl_generic.h>
-//#include <rreil/rreil.h>
-/*
-#ifdef GDSL_X86
-#include <x86.h>
-#endif
-*/
+
 //////////////////// ASM /////////////////
 
 static const unboxed_asm_opnd_list_callbacks_t asm_opnd_list_callbacks = {
@@ -72,8 +67,8 @@ static const unboxed_sem_id_callbacks_t sem_id_callbacks = {
   .arch   = (void*) &sem_id_arch};
 
 static const unboxed_sem_exception_callbacks_t sem_exception_callbacks = {
-  .shared = (void*) &exception_shared,
-  .arch = (void*)   &exception_arch};
+  .shared = (void*) &sem_exception_shared,
+  .arch = (void*)   &sem_exception_arch};
 
 static const unboxed_sem_address_callbacks_t sem_address_callbacks = {.sem_address_ = (void*) &sem_address};
 
@@ -135,7 +130,7 @@ static const unboxed_sem_stmt_callbacks_t sem_stmt_callbacks = {
   .sem_prim    = (void*) &sem_prim,
   .sem_throw   = (void*) &sem_throw};
 
-static const unboxed_branch_hint_callbacks_t branch_hint_callbacks = {.branch_hint_ = (void*) &branch_hint};
+static const unboxed_branch_hint_callbacks_t sem_branch_hint_callbacks = {.branch_hint_ = (void*) &sem_branch_hint};
 
 static const unboxed_sem_stmt_list_callbacks_t sem_stmt_list_callbacks = {
   .sem_stmt_list_next = (void*) &sem_stmts_next, 
@@ -154,7 +149,7 @@ static const unboxed_callbacks_t callbacks = {
   .sem_varl_list = (void*) &sem_varl_list_callbacks, 
   .sem_flop      = (void*) &sem_flop_callbacks, 
   .sem_stmt      = (void*) &sem_stmt_callbacks, 
-  .branch_hint   = (void*) &branch_hint_callbacks, 
+  .branch_hint   = (void*) &sem_branch_hint_callbacks, 
   .sem_exception = (void*) &sem_exception_callbacks, 
   .sem_stmt_list = (void*) &sem_stmt_list_callbacks
 };

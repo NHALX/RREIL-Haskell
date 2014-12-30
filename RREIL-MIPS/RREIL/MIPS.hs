@@ -1,6 +1,6 @@
 module RREIL.MIPS where
 import RREIL.GDSL
-import RREIL.Internal.Types (GDSL_STATE,GDSL_INT,ASM_INSN,Statement)
+import RREIL (GDSL_STATE,GDSL_INT,ASM_INSN,Statement)
 import Foreign
 import Foreign.C.Types
 import Foreign.C.String

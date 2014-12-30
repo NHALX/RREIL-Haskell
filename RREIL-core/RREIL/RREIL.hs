@@ -1,5 +1,10 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-module RREIL where
+module RREIL (
+    module RREIL.Internal.Types,
+    heap_reset,heap_size,seek,ip,inslen,rreil,
+    instruction,decode,source,runRREIL,
+    RM,DRM) 
+where
 import RREIL.GDSL
 import RREIL.Internal.Types
 import Foreign.ForeignPtr
@@ -15,28 +20,19 @@ import qualified Data.ByteString.Internal as B
 type RM p = ReaderT p IO
 type DRM p = ReaderT (p,GDSL_INSNDATA) IO
 
-{--
-state :: GDSL p => RM p GDSL_STATE
-state = toGDSL_STATE <$> ask
 
-state2 :: GDSL p => DRM p (GDSL_STATE,GDSL_INSNDATA)
-state2 = do
-  (a,b) <- ask
-  return (toGDSL_STATE a, b)
---}
-
-heap_size :: GDSL p => Integral z => RM p z
+heap_size :: GDSL p => RM p Int
 heap_size = liftM fromIntegral $ (liftIO . gdsl_heap_residency) =<< ask
 
 heap_reset :: GDSL p => RM p ()
 heap_reset = (liftIO . gdsl_reset_heap) =<< ask
 
-seek :: (Integral z, GDSL p) => z -> RM p z
+seek :: GDSL p => Int -> RM p Int
 seek z = do
   ctx <- ask
   liftIO $ liftM fromIntegral (gdsl_seek ctx (fromIntegral z))
 
-ip :: (Integral z, GDSL p) => RM p z
+ip :: GDSL p => RM p Word64
 ip = do
   ctx <- ask
   liftIO $ liftM fromIntegral (gdsl_get_ip ctx)
@@ -88,7 +84,7 @@ decode f = do
   liftIO $ runReaderT f (ctx,insn)
 
   
-source :: (GDSL p, Integral z) => B.ByteString -> z -> RM p ()
+source :: (GDSL p) => B.ByteString -> Word64 -> RM p ()
 source code base = do
   ctx <- ask
   liftIO $ withForeignPtr fd $ \d -> do

@@ -1,9 +1,19 @@
-module RREIL.Internal.Types where
+{-# LANGUAGE DeriveDataTypeable #-}
+module RREIL.Internal.Types (
+    ASM_INSN(..),ASM_OPND(..),ASM_SIGNEDNESS(..),ASM_BOUNDARY(..),ASM_ANN(..),ID_Shared(..),ID(..),
+    Exception(..),Address(..),Linear(..),SExpr(..),Comparator(..),Expr(..),Statement(..),
+    VarLimited(..),Variable(..),FloatOperation(..),BranchHint(..),
+    wrap,
+    unwrap,
+    GDSL_INT,
+    GDSL_STATE)
+where
 import RREIL.Internal.C_gdsl_generic
 import Foreign
 import Foreign.C.Types
 import Foreign.C.String
 import Control.Applicative
+import Data.Typeable
 
 type GDSL_STATE = Ptr ()
 type GDSL_INT   = C'int_t
@@ -46,7 +56,7 @@ asm_insn state length mnemonic annotations opnds = wrap =<< ASM_INSN (fromIntegr
 data ASM_INSN = ASM_INSN { insn_length      :: Word64,
                            insn_mnemonic    :: String,
                            insn_annotations :: [ASM_ANN],
-                           insn_opnds       :: [ASM_OPND] } deriving Show
+                           insn_opnds       :: [ASM_OPND] } deriving (Show,Read,Ord,Eq,Typeable)
 
 ---------------------- operand list --------------------
 
@@ -106,7 +116,7 @@ data ASM_OPND = ASM_COMPOSITE [ASM_OPND]
               | ASM_IMM Int64
               | ASM_MEMORY ASM_OPND
               | ASM_REGISTER String
-             deriving (Show)
+             deriving (Show,Read,Ord,Eq,Typeable)
 
 ------------------ signedness -----------------
 
@@ -118,7 +128,7 @@ asm_unsigned state = wrap ASM_UNSIGNED
 
 data ASM_SIGNEDNESS = ASM_SIGNED
                     | ASM_UNSIGNED
-                      deriving Show
+                      deriving (Show,Read,Ord,Eq,Typeable)
 
 ----------------- boundary ---------------------
 
@@ -131,7 +141,7 @@ asm_sz_o state size offset = wrap $ ASM_BOUNDARY_SZ_O (fromIntegral size) (fromI
 data ASM_BOUNDARY = ASM_BOUNDARY_SZ   { boundary_size   :: Word64}
                   | ASM_BOUNDARY_SZ_O { boundary_size   :: Word64, 
                                         boundary_offset :: Word64 }
-                    deriving Show
+                    deriving (Show,Read,Ord,Eq,Typeable)
 
 --------------- annotation list ----------------
 
@@ -157,7 +167,7 @@ asm_annotation_opnd state name opnd = wrap =<< ASM_ANN_OPND <$> peekCString name
 data ASM_ANN = ASM_ANN_OPND String ASM_OPND
              | ASM_ANN_FUNCTION String [ASM_OPND]
              | ASM_ANN_STRING String
-                deriving (Show)
+                deriving (Show,Read,Ord,Eq,Typeable)
 
 -------------------------------------------------------------------
       
@@ -175,7 +185,7 @@ static obj_t shared(state_t state, int_t eid) {
   return (obj_t)id;
 }
 --}
-data ID_Shared = FloatingFlags deriving Show
+data ID_Shared = FloatingFlags deriving (Show,Read,Ord,Eq,Typeable)
 
 foreign export ccall sem_id_shared :: GDSL_STATE -> GDSL_INT -> IO (P ID)
 sem_id_shared state i 
@@ -185,6 +195,7 @@ foreign export ccall sem_id_virt_t :: GDSL_STATE -> GDSL_INT -> IO (P ID)
 sem_id_virt_t state i = wrap (Temp $ fromIntegral i)
 
 {--
+TODO: how to deal with this X86 specialization?
 #ifdef GDSL_X86
 obj_t sem_id_arch(state_t state, string_t pretty_id) {
   struct rreil_id *id = (struct rreil_id*)malloc(sizeof(struct rreil_id));
@@ -209,14 +220,15 @@ sem_id_arch state str = wrap =<< ID <$> peekCString str
 data ID = ID String 
         | Temp Word64
         | Shared ID_Shared
-          deriving (Show)
+          deriving (Show,Read,Ord,Eq,Typeable)
 --------------------------------------------------------
 
-foreign export ccall exception_shared :: GDSL_STATE -> GDSL_INT -> IO (P Exception)
-exception_shared state eexp 
+foreign export ccall sem_exception_shared :: GDSL_STATE -> GDSL_INT -> IO (P Exception)
+sem_exception_shared state eexp 
      | eexp == c'EXCEPTION_DIVISION_BY_ZERO = wrap DivisionByZero
 
 {--
+TODO: how to deal with this X86 specialization?
 #ifdef GDSL_X86
 obj_t exception_arch(state_t state, string_t ex) {
   struct rreil_exception *exception = (struct rreil_exception*)malloc(sizeof(struct rreil_exception));
@@ -236,10 +248,10 @@ obj_t exception_arch(state_t state, string_t ex) {
 
 data Exception = Arch String 
                | DivisionByZero 
-                 deriving (Show)
+                 deriving (Show,Read,Ord,Eq,Typeable)
 
-foreign export ccall exception_arch :: GDSL_STATE -> CString -> IO (P Exception)
-exception_arch state str = wrap =<< Arch <$> peekCString str
+foreign export ccall sem_exception_arch :: GDSL_STATE -> CString -> IO (P Exception)
+sem_exception_arch state str = wrap =<< Arch <$> peekCString str
 
 ------------------------------------------------------
 
@@ -247,7 +259,7 @@ foreign export ccall sem_address :: GDSL_STATE -> GDSL_INT -> P Linear -> IO (P 
 sem_address state size addr = wrap =<< Address (fromIntegral size) <$> unwrap addr
 
 data Address = Address { address_size :: Word64, 
-                         address      :: Linear } deriving (Show)
+                         address      :: Linear } deriving (Show,Read,Ord,Eq,Typeable)
 
 
 foreign export ccall sem_var :: GDSL_STATE -> P ID -> GDSL_INT -> IO (P Variable)
@@ -284,7 +296,7 @@ data Linear = Scale { scale_imm :: Word64,
             | LSUB { lsub_opnd1 :: Linear,
                      lsub_opnd2 :: Linear }
               
-              deriving (Show)
+              deriving (Show,Read,Ord,Eq,Typeable)
 
 
 ---------------------- sem_sexpr -------------------------
@@ -301,7 +313,7 @@ sem_sexpr_arb state = wrap ARB
 data SExpr = ARB
            | CMP Comparator
            | LIN Linear
-           deriving Show
+           deriving (Show,Read,Ord,Eq,Typeable)
 
 ---------------------- sem_expr_cmp -----------------------
 
@@ -342,7 +354,7 @@ data Comparator = LTU { ltu_opnd1 :: Linear,
                 | EQUAL { eq_opnd1 :: Linear,
                           eq_opnd2 :: Linear }
 
-                deriving Show
+                deriving (Show,Read,Ord,Eq,Typeable)
 
 ----------------------- sem_expr ----------------------
 
@@ -432,7 +444,7 @@ data Expr = ZX { zx_fromsize :: Word64,
 
           | EXPR_S SExpr
 
-            deriving (Show)
+            deriving (Show,Read,Ord,Eq,Typeable)
 
 --------------------- sem_varl --------------------------
 
@@ -497,14 +509,14 @@ data Statement = Throw Exception
                         prim_lhs :: [VarLimited], 
                         prim_rhs :: [VarLimited] }
 
-                 deriving Show
+                 deriving (Show,Read,Ord,Eq,Typeable)
 
-data VarLimited = VarLimited { varl_id :: ID, varl_offset :: Word64, varl_size :: Word64 } deriving (Show)  
-data Variable   = Variable   { var_id :: ID, var_offset :: Word64 } deriving (Show)
+data VarLimited = VarLimited { varl_id :: ID, varl_offset :: Word64, varl_size :: Word64 } deriving (Show,Read,Ord,Eq,Typeable)
+data Variable   = Variable   { var_id :: ID, var_offset :: Word64 } deriving (Show,Read,Ord,Eq,Typeable)
 
-data FloatOperation = FADD | FSUB | FMUL deriving (Show)
+data FloatOperation = FADD | FSUB | FMUL deriving (Show,Read,Ord,Eq,Typeable)
 
-data BranchHint = CALL | JMP | RET deriving Show
+data BranchHint = CALL | JMP | RET deriving (Show,Read,Ord,Eq,Typeable)
 
 
 foreign export ccall sem_assign :: GDSL_STATE -> GDSL_INT -> P Variable -> P Expr -> IO (P Statement)
@@ -560,8 +572,8 @@ foreign export ccall sem_throw :: GDSL_STATE -> P Exception -> IO (P Statement)
 sem_throw state exception = wrap . Throw =<< unwrap exception
 
 
-foreign export ccall branch_hint :: GDSL_STATE -> GDSL_INT -> IO (P BranchHint)
-branch_hint state con 
+foreign export ccall sem_branch_hint :: GDSL_STATE -> GDSL_INT -> IO (P BranchHint)
+sem_branch_hint state con 
     | con == c'BRANCH_HINT_JUMP = wrap JMP
     | con == c'BRANCH_HINT_CALL = wrap CALL
     | con == c'BRANCH_HINT_RET  = wrap RET
