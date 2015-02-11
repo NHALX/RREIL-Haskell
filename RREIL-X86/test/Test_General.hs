@@ -11,39 +11,39 @@ import RREIL.X86
 import Control.Monad.Trans
 import System.Exit (exitFailure,exitSuccess)
 
-var_ip = Variable {var_id = ID "IP", var_offset = 0}
-var_si = Variable {var_id = ID "SI", var_offset = 0}
-var_sp = Variable {var_id = ID "SP", var_offset = 0}
+var_ip = VAR {var_id = ID "IP", var_offset = 0}
+var_si = VAR {var_id = ID "SI", var_offset = 0}
+var_sp = VAR {var_id = ID "SP", var_offset = 0}
 
 expected = [
-    Assign {assign_size = 64, 
+    ASSIGN {assign_size = 64, 
             assign_lhs = var_ip,
-            assign_rhs = EXPR_S (LIN (LADD { 
-                ladd_opnd1 = Var var_ip, 
-                ladd_opnd2 = Immediate 1
+            assign_rhs = EXPR_SEXPR (SEXPR_LIN (LIN_ADD { 
+                ladd_opnd1 = LIN_VAR var_ip, 
+                ladd_opnd2 = LIN_IMM 1
                 }))
             },
             
-    Assign {assign_size = 64, 
-            assign_lhs = Variable {var_id = Temp 0, var_offset = 0}, 
-            assign_rhs = EXPR_S (LIN (Var var_si))},
+    ASSIGN {assign_size = 64, 
+            assign_lhs = VAR {var_id = TEMP 0, var_offset = 0}, 
+            assign_rhs = EXPR_SEXPR (SEXPR_LIN (LIN_VAR var_si))},
             
-    Assign {assign_size = 64, 
+    ASSIGN {assign_size = 64, 
             assign_lhs = var_sp, 
-            assign_rhs = EXPR_S (LIN (LSUB {
-                lsub_opnd1 = Var var_sp, 
-                lsub_opnd2 = Immediate 8
+            assign_rhs = EXPR_SEXPR (SEXPR_LIN (LIN_SUB {
+                lsub_opnd1 = LIN_VAR var_sp, 
+                lsub_opnd2 = LIN_IMM 8
                 }))
             },
             
-    Store {store_size = 64, 
-           store_address = Address {address_size = 64, address = Var var_sp}, 
-           store_rhs = Var (Variable {var_id = Temp 0, var_offset = 0})
+    STORE {store_size = 64, 
+           store_address = ADDRESS {address_size = 64, address = LIN_VAR var_sp}, 
+           store_rhs = LIN_VAR (VAR {var_id = TEMP 0, var_offset = 0})
            }
     ]
     
 main = do
-       xs <- runRREIL (f "\x56" :: RM X86 [Statement])
+       xs <- runRRT (f "\x56" :: RRT X86_64 IO [STMT])
        
        if xs == expected
         then exitSuccess
@@ -61,7 +61,7 @@ main = do
             liftIO . print =<< ip
             return xs
             
-      g :: GDSL p => DRM p [Statement]
+      g :: GDSL p => RRDec p [STMT]
       g = do
            x <- instruction
            y <- rreil

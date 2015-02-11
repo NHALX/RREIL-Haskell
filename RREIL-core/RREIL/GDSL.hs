@@ -1,6 +1,6 @@
 module RREIL.GDSL where
 import RREIL.Internal.C_gdsl_generic
-import RREIL.Internal.Types (Statement,ASM_INSN,GDSL_INT)
+import RREIL.Internal.Types (STMT,ASM_INSN,GDSL_INT)
 import Foreign
 import Foreign.C.Types
 import Foreign.C.String
@@ -72,7 +72,7 @@ class GDSL a where
     gdsl_translate :: a -> GDSL_INSNDATA -> IO GDSL_OBJ
 
 
-    gdsl_rreil_convert_sem_stmt_list :: a -> RREIL_CONS -> GDSL_OBJ -> IO (StablePtr [Statement])
+    gdsl_rreil_convert_sem_stmt_list :: a -> RREIL_CONS -> GDSL_OBJ -> IO (StablePtr [STMT])
 
 
     gdsl_generalize :: a -> GDSL_INSNDATA -> IO GDSL_OBJ
